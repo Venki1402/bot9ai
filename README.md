@@ -34,6 +34,14 @@ Bot9 Hotel Booking Assistant is an AI-powered chatbot that helps users book room
 
 *A successful booking confirmation displayed by the bot.*
 
+## Video Demo
+
+https://github.com/Venki1402/bot9ai/assets/141071215/b441ad3b-cf40-4dd8-b2c7-f65abe28fa3b
+
+https://github.com/Venki1402/bot9ai/assets/141071215/c720e57c-b7a0-4513-a217-2b2a6633f798
+
+https://github.com/Venki1402/bot9ai/assets/141071215/47071b6c-8be3-4ebe-8810-b01af130ecba
+
 ## Technology Stack
 
 - Frontend: HTML, CSS, JavaScript
