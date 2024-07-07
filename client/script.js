@@ -86,9 +86,17 @@ const handleSubmit = async (e) => {
     body: JSON.stringify({ prompt: data.get("prompt") }),
   });
 
+  // // test get call
+  // const response = await fetch("http://localhost:8055/openai", {
+  //   method: "GET",
+  //   headers: {
+  //     "Content-Type": "application/json",
+  //   },
+  // });
+  
   clearInterval(loadInterval);
   messageDiv.innerHTML = "";
-
+  
   if (response.ok) {
     const { data } = await response.json();
     const parsedData = data.bot.trim();
@@ -99,6 +107,10 @@ const handleSubmit = async (e) => {
     messageDiv.innerHTML = "Something went wrong!";
     alert(err);
   }
+  
+  // const response = "Im still here...";
+  // typeText(messageDiv, response);
+
 };
 
 form.addEventListener("submit", handleSubmit);
