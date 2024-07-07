@@ -4,7 +4,7 @@ const bodyParser = require("body-parser");
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 const dotenv = require("dotenv");
 const { Conversation } = require("./database");
-const { getRoomOptions, bookRoom } = require("./hotelFunctions");
+const axios = require("axios");
 
 dotenv.config();
 
@@ -33,8 +33,33 @@ app.use(cors());
 app.use(bodyParser.json());
 
 app.get("/", (req, res) => {
-    res.json({ message: "Welcome to the Bot9 Gemini Server!" });
+  res.json({ message: "Welcome to the Bot9 Hotel Booking Server!" });
 });
+
+const getRoomOptions = async () => {
+  try {
+    const response = await axios.get("https://bot9assignement.deno.dev/rooms");
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching room options:", error);
+    throw error;
+  }
+};
+
+const bookRoom = async (roomId, fullName, email, nights) => {
+  try {
+    const response = await axios.post("https://bot9assignement.deno.dev/book", {
+      roomId,
+      fullName,
+      email,
+      nights,
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error booking room:", error);
+    throw error;
+  }
+};
 
 app.post("/chat", async (req, res) => {
   const { message, userId } = req.body;
@@ -51,7 +76,7 @@ app.post("/chat", async (req, res) => {
       { role: "model", content: c.response },
     ]);
 
-    const systemPrompt = `You are a helpful hotel booking assistant for Bot9 Palace. Always start by fetching and displaying room options when a user expresses interest in booking. Then guide the user through the booking process, asking for necessary details one by one.`;
+    const systemPrompt = `You are a friendly hotel booking assistant for Bot9 Palace. Engage in casual, natural conversation. Keep responses brief and only ask for one piece of information at a time. Don't overwhelm the user with too many questions at once. Only mention room booking when the user expresses interest.`;
 
     const messages = [
       { role: "system", content: systemPrompt },
@@ -61,33 +86,45 @@ app.post("/chat", async (req, res) => {
 
     let responseContent = await geminiService.createChatCompletion(messages);
 
-    // If the message includes any mention of booking or rooms, fetch and display room options
+    // Check if the user is interested in booking a room
     if (
       message.toLowerCase().includes("book") ||
       message.toLowerCase().includes("room")
     ) {
       const roomOptions = await getRoomOptions();
-      responseContent = `Certainly! I'd be happy to help you book a room at Bot9 Palace. Here are our available room options: ${JSON.stringify(
-        roomOptions,
-        null,
-        2
-      )}
-        Which room would you like to book? Please provide the room ID, your full name, email address, and the number of nights you'd like to stay.`;
+      responseContent = `Great! Here are our available rooms:\n\n`;
+      roomOptions.forEach((room) => {
+        responseContent += `Room ${room.id}: ${room.name}, ${room.description}, $${room.price}/night\n`;
+      });
+      responseContent += `\nWhich room interests you? Just let me know the room number.`;
     }
 
-    // Check if the user message contains booking details
+    // Check if the user has selected a room and provided booking details
     const bookingDetailsMatch = message.match(
-      /book room id (\d+), my name is ([^,]+), my email is ([^,]+), (\d+) nights/
+      /book room (\d+),\s*name:\s*([^,]+),\s*email:\s*([^,]+),\s*nights:\s*(\d+)/i
     );
     if (bookingDetailsMatch) {
       const [, roomId, fullName, email, nights] = bookingDetailsMatch;
-      const bookingResult = await bookRoom(
-        parseInt(roomId),
-        fullName,
-        email,
-        parseInt(nights)
-      );
-      responseContent = `Booking confirmed:\n${JSON.stringify(bookingResult, null, 2)}`;
+      try {
+        const bookingResult = await bookRoom(
+          parseInt(roomId),
+          fullName,
+          email,
+          parseInt(nights)
+        );
+        responseContent =
+          `Booking confirmed! Here's a summary:\n` +
+          `Booking ID: ${bookingResult.bookingId}\n` +
+          `Room: ${bookingResult.roomId}\n` +
+          `Name: ${bookingResult.fullName}\n` +
+          `Nights: ${bookingResult.nights}\n` +
+          `Total: $${bookingResult.totalPrice}\n\n` +
+          `Anything else I can help with?`;
+      } catch (error) {
+        responseContent =
+          `Sorry, there was a problem with your booking. ${error.message}\n` +
+          `Want to try a different room?`;
+      }
     }
 
     await Conversation.create({
@@ -104,29 +141,6 @@ app.post("/chat", async (req, res) => {
       .json({ error: "An error occurred while processing your request." });
   }
 });
-
-// Endpoint to reset the database
-app.post("/reset-database", async (req, res) => {
-  try {
-    await resetDatabase();
-    res.json({ message: "Database has been reset." });
-  } catch (error) {
-    console.error("Error resetting database:", error);
-    res
-      .status(500)
-      .json({ error: "An error occurred while resetting the database." });
-  }
-});
-
-async function resetDatabase() {
-  try {
-    await sequelize.drop(); // This drops all tables
-    await sequelize.sync(); // This recreates the tables
-    console.log("Database has been reset.");
-  } catch (error) {
-    console.error("Error resetting database:", error);
-  }
-}
 
 const port = process.env.PORT || 3000;
 app.listen(port, () => {

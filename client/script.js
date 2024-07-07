@@ -78,39 +78,28 @@ const handleSubmit = async (e) => {
   loader(messageDiv);
 
   // fetch data from server
-  const response = await fetch("http://localhost:8055/openai", {
+  const response = await fetch("http://localhost:3000/chat", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ prompt: data.get("prompt") }),
+    body: JSON.stringify({ 
+      message: data.get("prompt"),
+      userId: "user123" // You might want to implement actual user management
+    }),
   });
-
-  // // test get call
-  // const response = await fetch("http://localhost:8055/openai", {
-  //   method: "GET",
-  //   headers: {
-  //     "Content-Type": "application/json",
-  //   },
-  // });
   
   clearInterval(loadInterval);
   messageDiv.innerHTML = "";
   
   if (response.ok) {
-    const { data } = await response.json();
-    const parsedData = data.bot.trim();
-    typeText(messageDiv, parsedData);
-  }
-  else {
+    const { response: botResponse } = await response.json();
+    typeText(messageDiv, botResponse);
+  } else {
     const err = await response.text();
     messageDiv.innerHTML = "Something went wrong!";
     alert(err);
   }
-  
-  // const response = "Im still here...";
-  // typeText(messageDiv, response);
-
 };
 
 form.addEventListener("submit", handleSubmit);
