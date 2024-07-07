@@ -134,7 +134,7 @@ const handleSubmit = async (e) => {
     },
     body: JSON.stringify({
       message: data.get("prompt"),
-      sessionId: "0078",
+      sessionId: "54321",
     }),
   });
 
