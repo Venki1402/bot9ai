@@ -76,7 +76,7 @@ app.post("/chat", async (req, res) => {
       { role: "model", content: c.response },
     ]);
 
-    const systemPrompt = `You are a friendly hotel booking assistant for Bot9 Palace. Engage in casual, natural conversation. Keep responses brief and only ask for one piece of information at a time. Don't overwhelm the user with too many questions at once. Only mention room booking when the user expresses interest.`;
+    const systemPrompt = `You are a friendly hotel booking assistant for Bot9 Palace. Engage in casual, natural conversation. Keep responses brief and only ask for one piece of information at a time. Don't overwhelm the user with too many questions at once. When a user expresses interest in a specific room, ask for their name, email, and number of nights.`;
 
     const messages = [
       { role: "system", content: systemPrompt },
@@ -99,31 +99,46 @@ app.post("/chat", async (req, res) => {
       responseContent += `\nWhich room interests you? Just let me know the room number.`;
     }
 
-    // Check if the user has selected a room and provided booking details
+    // Check if the user has selected a specific room
+    const roomMatch = message.match(/room (?:number )?(\d+)/i);
+    if (roomMatch) {
+      const roomId = parseInt(roomMatch[1]);
+      responseContent = `Excellent choice! To book Room ${roomId}, I'll need a few more details. Can you please provide your full name, email address, and the number of nights you'd like to stay? You can format it like this: "Name: John Doe, Email: john@example.com, Nights: 3"`;
+    }
+
+    // Check if the user has provided booking details
     const bookingDetailsMatch = message.match(
-      /book room (\d+),\s*name:\s*([^,]+),\s*email:\s*([^,]+),\s*nights:\s*(\d+)/i
+      /name:\s*([^,]+),\s*email:\s*([^,]+),\s*nights:\s*(\d+)/i
     );
     if (bookingDetailsMatch) {
-      const [, roomId, fullName, email, nights] = bookingDetailsMatch;
-      try {
-        const bookingResult = await bookRoom(
-          parseInt(roomId),
-          fullName,
-          email,
-          parseInt(nights)
-        );
-        responseContent =
-          `Booking confirmed! Here's a summary:\n` +
-          `Booking ID: ${bookingResult.bookingId}\n` +
-          `Room: ${bookingResult.roomId}\n` +
-          `Name: ${bookingResult.fullName}\n` +
-          `Nights: ${bookingResult.nights}\n` +
-          `Total: $${bookingResult.totalPrice}\n\n` +
-          `Anything else I can help with?`;
-      } catch (error) {
-        responseContent =
-          `Sorry, there was a problem with your booking. ${error.message}\n` +
-          `Want to try a different room?`;
+      const [, fullName, email, nights] = bookingDetailsMatch;
+      const roomId = chatHistory
+        .find((msg) => msg.content.includes("Room"))
+        ?.content.match(/Room (\d+)/)?.[1];
+
+      if (roomId) {
+        try {
+          const bookingResult = await bookRoom(
+            parseInt(roomId),
+            fullName,
+            email,
+            parseInt(nights)
+          );
+          responseContent =
+            `Booking confirmed! Here's a summary:\n` +
+            `Booking ID: ${bookingResult.bookingId}\n` +
+            `Room: ${bookingResult.roomId}\n` +
+            `Name: ${bookingResult.fullName}\n` +
+            `Nights: ${bookingResult.nights}\n` +
+            `Total: $${bookingResult.totalPrice}\n\n` +
+            `Anything else I can help with?`;
+        } catch (error) {
+          responseContent =
+            `Sorry, there was a problem with your booking. ${error.message}\n` +
+            `Want to try a different room?`;
+        }
+      } else {
+        responseContent = `I'm sorry, but I couldn't find which room you wanted to book. Can you please specify the room number again?`;
       }
     }
 
