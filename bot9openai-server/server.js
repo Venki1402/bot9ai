@@ -1,5 +1,6 @@
 const express = require("express");
 const path = require("path");
+const cors = require('cors');
 require("dotenv").config();
 const OpenAI = require("openai");
 const { Message } = require("./database");
@@ -10,6 +11,7 @@ const PORT = process.env.PORT || 9000;
 
 app.use(express.json());
 app.use(express.static("public"));
+app.use(cors());
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -18,6 +20,7 @@ const openai = new OpenAI({
 app.get("/test", (req, res) => {
   res.send("Server is working");
 });
+
 
 app.post("/chat", async (req, res) => {
   try {
@@ -114,6 +117,7 @@ app.post("/chat", async (req, res) => {
     res.status(500).json({ error: "An error occurred" });
   }
 });
+
 
 app.listen(PORT, () => {
   console.log(`Server is running on port http://localhost:${PORT}`);
