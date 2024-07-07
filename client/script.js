@@ -127,7 +127,7 @@ const handleSubmit = async (e) => {
   loader(messageDiv);
 
   // fetch data from server
-  const response = await fetch("http://localhost:9000/chat", {
+  const response = await fetch("https://bot9ai.onrender.com/chat", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
